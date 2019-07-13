@@ -72,11 +72,12 @@ class _HomeState extends State<Home> {
         duration: Duration(seconds: 3),
         action: SnackBarAction(
             label: "Undo",
-            onPressed: (){
-          _rollbackItem(item, index);
-        }),
+            onPressed: () {
+              _rollbackItem(item, index);
+            }),
       );
 
+      Scaffold.of(context).removeCurrentSnackBar(); // ADICIONE ESTE COMANDO
       Scaffold.of(context).showSnackBar(snackbar);
     });
   }
@@ -84,6 +85,23 @@ class _HomeState extends State<Home> {
   void _rollbackItem(item, index) {
     setState(() {
       _toDoList.insert(index, item);
+    });
+  }
+
+  Future<Null> _refresh() async {
+    await Future.delayed(Duration(seconds: 2));
+
+    _toDoList.sort((a, b) {
+      if (a.done && !b.done)
+        return 1;
+      else if (!a.done && b.done)
+        return -1;
+      else
+        return 0;
+    });
+
+    setState(() {
+      _saveData(_toDoList);
     });
   }
 
@@ -105,33 +123,41 @@ class _HomeState extends State<Home> {
 
   Widget buildItem(context, int index) {
     return Dismissible(
-      key: Key(DateTime.now().millisecondsSinceEpoch.toString()),
-      onDismissed: (direction) {
-        _deleteItem(context, _toDoList[index], index);
-      },
-      direction: DismissDirection.startToEnd,
-      background: Container(
-        color: Colors.red,
-        child: Align(
-          alignment: Alignment(-0.9, 0.0),
-          child: Icon(Icons.delete, color: Colors.white,),
-        ),
-      ),
-      child: CheckboxListTile(
-        title: Text(_toDoList[index].name),
-        value: _toDoList[index].done,
-        secondary: CircleAvatar(
-          backgroundColor: Colors.purple,
-          child: Icon(_toDoList[index].done ? Icons.done : Icons.close, color: Colors.white,),
-        ),
-        onChanged: (checked) {
-          setState(() {
-            _toDoList[index].changeStatus();
-            _saveData(_toDoList);
-          });
+        key: Key(DateTime.now().millisecondsSinceEpoch.toString()),
+        onDismissed: (direction) {
+          _deleteItem(context, _toDoList[index], index);
         },
-      ),
-    );
+        direction: DismissDirection.startToEnd,
+        background: Container(
+          color: Colors.red,
+          child: Align(
+            alignment: Alignment(-0.9, 0.0),
+            child: Icon(
+              Icons.delete,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        child: Container(
+          height: 70.0,
+          child: CheckboxListTile(
+            title: Text(_toDoList[index].name),
+            value: _toDoList[index].done,
+            secondary: CircleAvatar(
+              backgroundColor: Colors.purple,
+              child: Icon(
+                _toDoList[index].done ? Icons.done : Icons.close,
+                color: Colors.white,
+              ),
+            ),
+            onChanged: (checked) {
+              setState(() {
+                _toDoList[index].changeStatus();
+                _saveData(_toDoList);
+              });
+            },
+          ),
+        ));
   }
 
   @override
@@ -150,6 +176,8 @@ class _HomeState extends State<Home> {
               children: <Widget>[
                 Expanded(
                   child: TextField(
+                    style: TextStyle(fontSize: 20.0),
+                    textCapitalization: TextCapitalization.sentences,
                     controller: taskToAdd,
                     decoration: InputDecoration(
                         labelText: "New task",
@@ -168,11 +196,12 @@ class _HomeState extends State<Home> {
             ),
           ),
           Expanded(
-            child: ListView.builder(
-                padding: EdgeInsets.fromLTRB(17.0, 2.0, 17.0, 0.0),
-                itemCount: _toDoList.length,
-                itemBuilder: buildItem),
-          )
+              child: RefreshIndicator(
+                  child: ListView.builder(
+                      padding: EdgeInsets.fromLTRB(0.0, 2.0, 0.0, 0.0),
+                      itemCount: _toDoList.length,
+                      itemBuilder: buildItem),
+                  onRefresh: _refresh))
         ],
       ),
     );
