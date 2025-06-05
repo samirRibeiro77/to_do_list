@@ -1,209 +1,122 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
-import 'domain/ToDoTask.dart';
 
 void main() {
-  runApp(MaterialApp(
-    title: "To Do List",
-    home: Home(),
-  ));
+  runApp(const MyApp());
 }
 
-Future<File> _getFile() async {
-  final directory = await getApplicationDocumentsDirectory();
-  var file = await File("${directory.path}/toDoTask.json");
-  var fileExists = await file.exists();
-  if (!fileExists) {
-    await file.create(recursive: true);
-  }
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
-  return file;
-}
-
-Future<File> _saveData(List<ToDoTask> listSave) async {
-  var listMap = List<Map<String, dynamic>>();
-  listSave.forEach((data) {
-    listMap.add(data.toJson());
-  });
-
-  String dataJson = json.encode(listMap);
-  final file = await _getFile();
-  return file.writeAsString(dataJson);
-}
-
-Future<String> _readData() async {
-  try {
-    var data = await _getFile();
-    return data.readAsString();
-  } catch (e) {
-    return null;
-  }
-}
-
-class Home extends StatefulWidget {
+  // This widget is the root of your application.
   @override
-  _HomeState createState() => _HomeState();
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Flutter Demo',
+      theme: ThemeData(
+        // This is the theme of your application.
+        //
+        // TRY THIS: Try running your application with "flutter run". You'll see
+        // the application has a purple toolbar. Then, without quitting the app,
+        // try changing the seedColor in the colorScheme below to Colors.green
+        // and then invoke "hot reload" (save your changes or press the "hot
+        // reload" button in a Flutter-supported IDE, or press "r" if you used
+        // the command line to start the app).
+        //
+        // Notice that the counter didn't reset back to zero; the application
+        // state is not lost during the reload. To reset the state, use hot
+        // restart instead.
+        //
+        // This works for code too, not just values: Most code changes can be
+        // tested with just a hot reload.
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+      ),
+      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+    );
+  }
 }
 
-class _HomeState extends State<Home> {
-  final taskToAdd = TextEditingController();
+class MyHomePage extends StatefulWidget {
+  const MyHomePage({super.key, required this.title});
 
-  List<ToDoTask> _toDoList = [];
+  // This widget is the home page of your application. It is stateful, meaning
+  // that it has a State object (defined below) that contains fields that affect
+  // how it looks.
 
-  void _addToDo() {
-    var newToDo = ToDoTask(taskToAdd.text);
-    taskToAdd.text = "";
+  // This class is the configuration for the state. It holds the values (in this
+  // case the title) provided by the parent (in this case the App widget) and
+  // used by the build method of the State. Fields in a Widget subclass are
+  // always marked "final".
 
-    setState(() {
-      _toDoList.add(newToDo);
-      _saveData(_toDoList);
-    });
-  }
-
-  void _deleteItem(context, item, index) {
-    setState(() {
-      _toDoList.removeAt(index);
-      _saveData(_toDoList);
-
-      final snackbar = SnackBar(
-        content: Text("Task \"${item.name}\" removed."),
-        duration: Duration(seconds: 3),
-        action: SnackBarAction(
-            label: "Undo",
-            onPressed: () {
-              _rollbackItem(item, index);
-            }),
-      );
-
-      Scaffold.of(context).removeCurrentSnackBar(); // ADICIONE ESTE COMANDO
-      Scaffold.of(context).showSnackBar(snackbar);
-    });
-  }
-
-  void _rollbackItem(item, index) {
-    setState(() {
-      _toDoList.insert(index, item);
-    });
-  }
-
-  Future<Null> _refresh() async {
-    await Future.delayed(Duration(seconds: 2));
-
-    _toDoList.sort((a, b) {
-      if (a.done && !b.done)
-        return 1;
-      else if (!a.done && b.done)
-        return -1;
-      else
-        return 0;
-    });
-
-    setState(() {
-      _saveData(_toDoList);
-    });
-  }
+  final String title;
 
   @override
-  void initState() {
-    super.initState();
+  State<MyHomePage> createState() => _MyHomePageState();
+}
 
-    _readData().then((data) {
-      List mapJson = json.decode(data);
-      mapJson.forEach((jsonData) {
-        print(jsonData);
-        var task = ToDoTask.fromJson(jsonData);
-        setState(() {
-          _toDoList.add(task);
-        });
-      });
+class _MyHomePageState extends State<MyHomePage> {
+  int _counter = 0;
+
+  void _incrementCounter() {
+    setState(() {
+      // This call to setState tells the Flutter framework that something has
+      // changed in this State, which causes it to rerun the build method below
+      // so that the display can reflect the updated values. If we changed
+      // _counter without calling setState(), then the build method would not be
+      // called again, and so nothing would appear to happen.
+      _counter++;
     });
-  }
-
-  Widget buildItem(context, int index) {
-    return Dismissible(
-        key: Key(DateTime.now().millisecondsSinceEpoch.toString()),
-        onDismissed: (direction) {
-          _deleteItem(context, _toDoList[index], index);
-        },
-        direction: DismissDirection.startToEnd,
-        background: Container(
-          color: Colors.red,
-          child: Align(
-            alignment: Alignment(-0.9, 0.0),
-            child: Icon(
-              Icons.delete,
-              color: Colors.white,
-            ),
-          ),
-        ),
-        child: Container(
-          height: 70.0,
-          child: CheckboxListTile(
-            title: Text(_toDoList[index].name),
-            value: _toDoList[index].done,
-            secondary: CircleAvatar(
-              backgroundColor: Colors.purple,
-              child: Icon(
-                _toDoList[index].done ? Icons.done : Icons.close,
-                color: Colors.white,
-              ),
-            ),
-            onChanged: (checked) {
-              setState(() {
-                _toDoList[index].changeStatus();
-                _saveData(_toDoList);
-              });
-            },
-          ),
-        ));
   }
 
   @override
   Widget build(BuildContext context) {
+    // This method is rerun every time setState is called, for instance as done
+    // by the _incrementCounter method above.
+    //
+    // The Flutter framework has been optimized to make rerunning build methods
+    // fast, so that you can just rebuild anything that needs updating rather
+    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        title: Text("To Do List"),
-        backgroundColor: Colors.purple,
-        centerTitle: true,
+        // TRY THIS: Try changing the color here to a specific color (to
+        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
+        // change color while the other colors stay the same.
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        // Here we take the value from the MyHomePage object that was created by
+        // the App.build method, and use it to set our appbar title.
+        title: Text(widget.title),
       ),
-      body: Column(
-        children: <Widget>[
-          Container(
-            padding: EdgeInsets.fromLTRB(17.0, 1.0, 7.0, 1.0),
-            child: Row(
-              children: <Widget>[
-                Expanded(
-                  child: TextField(
-                    style: TextStyle(fontSize: 20.0),
-                    textCapitalization: TextCapitalization.sentences,
-                    controller: taskToAdd,
-                    decoration: InputDecoration(
-                        labelText: "New task",
-                        labelStyle: TextStyle(color: Colors.purple)),
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.add,
-                    color: Colors.purple,
-                    size: 30.0,
-                  ),
-                  onPressed: _addToDo,
-                )
-              ],
+      body: Center(
+        // Center is a layout widget. It takes a single child and positions it
+        // in the middle of the parent.
+        child: Column(
+          // Column is also a layout widget. It takes a list of children and
+          // arranges them vertically. By default, it sizes itself to fit its
+          // children horizontally, and tries to be as tall as its parent.
+          //
+          // Column has various properties to control how it sizes itself and
+          // how it positions its children. Here we use mainAxisAlignment to
+          // center the children vertically; the main axis here is the vertical
+          // axis because Columns are vertical (the cross axis would be
+          // horizontal).
+          //
+          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
+          // action in the IDE, or press "p" in the console), to see the
+          // wireframe for each widget.
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            const Text('You have pushed the button this many times:'),
+            Text(
+              '$_counter',
+              style: Theme.of(context).textTheme.headlineMedium,
             ),
-          ),
-          Expanded(
-              child: RefreshIndicator(
-                  child: ListView.builder(
-                      padding: EdgeInsets.fromLTRB(0.0, 2.0, 0.0, 0.0),
-                      itemCount: _toDoList.length,
-                      itemBuilder: buildItem),
-                  onRefresh: _refresh))
-        ],
+          ],
+        ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _incrementCounter,
+        tooltip: 'Increment',
+        child: const Icon(Icons.add),
+      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
