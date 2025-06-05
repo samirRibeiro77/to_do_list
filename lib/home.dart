@@ -14,6 +14,7 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   List _taskList = [];
+  Map<String, dynamic> _lastRemoved = Map();
   TextEditingController _taskController = TextEditingController();
 
   Future<File> _getFile() async {
@@ -58,6 +59,52 @@ class _HomeState extends State<Home> {
     });
   }
 
+  Widget _createListTile(context, index) {
+    final task = _taskList[index];
+
+    return Dismissible(
+      key: ValueKey(DateTime.now().millisecondsSinceEpoch.toString()),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        padding: EdgeInsets.all(16),
+        color: Colors.redAccent,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [Icon(Icons.delete_forever, color: Colors.white)],
+        ),
+      ),
+      onDismissed: (direction) {
+        _lastRemoved = task;
+        _taskList.removeAt(index);
+        _saveFile();
+
+        final snackBar = SnackBar(
+          content: Text("Tarefa deletada"),
+          action: SnackBarAction(
+            label: "Desfazer",
+            onPressed: () {
+              setState(() {
+                _taskList.insert(index, _lastRemoved);
+              });
+              _saveFile();
+            },
+          ),
+        );
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      },
+      child: CheckboxListTile(
+        title: Text(task["title"]),
+        value: task["done"],
+        onChanged: (value) {
+          setState(() {
+            task["done"] = value;
+          });
+          _saveFile();
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -74,19 +121,8 @@ class _HomeState extends State<Home> {
       ),
       body: ListView.builder(
         itemCount: _taskList.length,
-        padding: EdgeInsets.all(16),
-        itemBuilder: (context, index) {
-          return CheckboxListTile(
-            title: Text(_taskList[index]["title"]),
-            value: _taskList[index]["done"],
-            onChanged: (value) {
-              setState(() {
-                _taskList[index]["done"] = value;
-              });
-              _saveFile();
-            },
-          );
-        },
+        // padding: EdgeInsets.all(16),
+        itemBuilder: _createListTile,
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
