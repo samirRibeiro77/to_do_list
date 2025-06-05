@@ -1,4 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:async/async.dart';
+import 'dart:convert';
+
+import 'package:task_list/model/task.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key, required this.appName});
@@ -10,10 +16,25 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  var _list = ["Item 1", "Item 2", "Item 3"];
+  List _taskList = [];
+
+  _saveFile() async {
+    final dir = await getApplicationDocumentsDirectory();
+    var file = File("${dir.path}/taskList.json");
+
+    // Create task
+    var task = Task.newTask("Ir ao mercado");
+    setState(() {
+      _taskList.add(task.toMap());
+    });
+
+    var tasksJson = json.encode(_taskList);
+    file.writeAsString(tasksJson);
+  }
 
   @override
   Widget build(BuildContext context) {
+    _saveFile();
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -27,11 +48,11 @@ class _HomeState extends State<Home> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: ListView.builder(
-        itemCount: _list.length,
+        itemCount: _taskList.length,
           padding: EdgeInsets.all(16),
           itemBuilder: (context, index) {
             return ListTile(
-              title: Text(_list[index]),
+              title: Text(_taskList[index]["title"]),
             );
           }
       ),
