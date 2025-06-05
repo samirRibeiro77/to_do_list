@@ -1,10 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:async/async.dart';
 import 'dart:convert';
-
-import 'package:task_list/model/task.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key, required this.appName});
@@ -17,24 +14,52 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   List _taskList = [];
+  TextEditingController _taskController = TextEditingController();
 
-  _saveFile() async {
+  Future<File> _getFile() async {
     final dir = await getApplicationDocumentsDirectory();
-    var file = File("${dir.path}/taskList.json");
+    return File("${dir.path}/taskList.json");
+  }
 
-    // Create task
-    var task = Task.newTask("Ir ao mercado");
+  _saveTask() {
+    var task = {"title": _taskController.text, "done": false};
+
     setState(() {
-      _taskList.add(task.toMap());
+      _taskList.add(task);
     });
 
+    _saveFile();
+    _taskController.text = "";
+  }
+
+  _saveFile() async {
     var tasksJson = json.encode(_taskList);
+
+    var file = await _getFile();
     file.writeAsString(tasksJson);
+  }
+
+  Future<String> _readFile() async {
+    try {
+      final file = await _getFile();
+      return file.readAsString();
+    } catch (e) {
+      return Future.error(e.toString());
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _readFile().then((data) {
+      setState(() {
+        _taskList = json.decode(data);
+      });
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    _saveFile();
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -49,43 +74,47 @@ class _HomeState extends State<Home> {
       ),
       body: ListView.builder(
         itemCount: _taskList.length,
-          padding: EdgeInsets.all(16),
-          itemBuilder: (context, index) {
-            return ListTile(
-              title: Text(_taskList[index]["title"]),
-            );
-          }
+        padding: EdgeInsets.all(16),
+        itemBuilder: (context, index) {
+          return CheckboxListTile(
+            title: Text(_taskList[index]["title"]),
+            value: _taskList[index]["done"],
+            onChanged: (value) {
+              setState(() {
+                _taskList[index]["done"] = value;
+              });
+              _saveFile();
+            },
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: (){
+        onPressed: () {
           showDialog(
-              context: context,
-              builder: (context){
-                return AlertDialog(
-                  title: Text("Adicionar tarefa"),
-                  content: TextField(
-                    decoration: InputDecoration(
-                      labelText: "Digite sua tarefa"
-                    ),
-                    onChanged: (text) {
-
-                    },
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: Text("Adicionar tarefa"),
+                content: TextField(
+                  controller: _taskController,
+                  decoration: InputDecoration(labelText: "Digite sua tarefa"),
+                  onChanged: (text) {},
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text("Cancelar"),
                   ),
-                  actions: [
-                    TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: Text("Cancelar")
-                    ),
-                    TextButton(
-                        onPressed: (){
-                          // TODO: Create function
-                          Navigator.pop(context);
-                        },
-                        child: Text("Salvar")
-                    ),
-                  ],
-                );
-              }
+                  TextButton(
+                    onPressed: () {
+                      _saveTask();
+                      Navigator.pop(context);
+                    },
+                    child: Text("Salvar"),
+                  ),
+                ],
+              );
+            },
           );
         },
         child: Icon(Icons.add_task),
