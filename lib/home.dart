@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:convert';
+import 'package:share_plus/share_plus.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key, required this.appName});
@@ -47,6 +48,20 @@ class _HomeState extends State<Home> {
     } catch (e) {
       return Future.error(e.toString());
     }
+  }
+
+  _shareFile() async {
+    var file = await _getFile();
+    final params = ShareParams(
+      text: "TaskList file",
+      files: [
+        XFile(file.path)
+      ]
+    );
+
+    final result = await SharePlus.instance.share(params);
+
+    print("Share status: ${result.status}");
   }
 
   @override
@@ -118,6 +133,12 @@ class _HomeState extends State<Home> {
           ),
         ),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          IconButton(
+              onPressed: _shareFile,
+              icon: Icon(Icons.share)
+          )
+        ],
       ),
       body: ListView.builder(
         itemCount: _taskList.length,
