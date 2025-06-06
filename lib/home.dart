@@ -14,8 +14,8 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   List _taskList = [];
-  Map<String, dynamic> _lastRemoved = Map();
-  TextEditingController _taskController = TextEditingController();
+  Map<String, dynamic> _lastRemoved = {};
+  final TextEditingController _taskController = TextEditingController();
 
   Future<File> _getFile() async {
     final dir = await getApplicationDocumentsDirectory();
